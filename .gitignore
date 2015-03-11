@@ -1,0 +1,10 @@
+*.o
+*/*.o
+html
+*.swp
+*/*.swp
+*.swp
+*.o
+*/*.o
+html
+tests/tests

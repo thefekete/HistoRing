@@ -23,6 +23,7 @@
 
 char* _itoa(uint32_t, int);
 void _puts(const char *, putchar_cb);
+void _teardown(void);
 
 
 /*
@@ -30,6 +31,7 @@ void _puts(const char *, putchar_cb);
  */
 
 typedef struct {
+    int init_result;
 } Fixture;
 
 
@@ -45,10 +47,12 @@ void my_putchar(char c)
 
 void setup(Fixture *f, gconstpointer test_data)
 {
+    f->init_result = HistoRing_init(BUF_LEN, NULL);
 }
 
 void teardown(Fixture *f, gconstpointer test_data)
 {
+    _teardown();
 }
 
 

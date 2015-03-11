@@ -13,7 +13,11 @@
 #ifndef _HISTORING_H_
 #define _HISTORING_H_
 
+#include <stdint.h>
+
 typedef uint32_t (*timestamp_cb)(void);
 typedef void (*putchar_cb)(char);
+
+int HistoRing_init(int, timestamp_cb);
 
 #endif /* _HISTORING_H_ */

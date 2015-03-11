@@ -110,6 +110,22 @@ void test_puts_ptr(void)
     g_test_trap_assert_stdout(buf);
 }
 
+void test_init(void)
+{
+    int result = HistoRing_init(1, NULL);
+    g_assert(result == 0);
+}
+
+void test_init_fails(void)
+{
+    if (g_test_trap_fork(0, G_TEST_TRAP_SILENCE_STDERR)) {
+        int result = HistoRing_init(0, NULL);
+        exit(result);
+    }
+    // rerun this test in a subprocess
+    g_test_trap_assert_failed();
+}
+
 
 /*
  * INTEGRATION TESTS
@@ -142,6 +158,10 @@ int main(int argc, char** argv)
     /* _puts tests */
     g_test_add_func("/_puts/const", test_puts_const);
     g_test_add_func("/_puts/ptr", test_puts_ptr);
+
+    /* main tests */
+    g_test_add_func("/HistoRing/init", test_init);
+    g_test_add_func("/HistoRing/init_fails", test_init_fails);
 
     /* integration tests */
     g_test_add_func("/integration/itoa_puts", inttest_itoa_puts);

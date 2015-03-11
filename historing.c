@@ -11,7 +11,20 @@
  *
  *****************************************************************************/
 #include "historing.h"
-//#include <stdlib.h>
+#include <assert.h>
+#include <stdlib.h>
+
+struct HistItem {
+    uint32_t timestamp;
+    const char *file;
+    const char *function;
+    const char *message;
+    uint32_t data;
+} HistItem;
+
+static struct HistItem *buf;
+static int buf_len;
+static timestamp_cb _time;
 
 
 char* _itoa(uint32_t val, int base)
@@ -27,9 +40,32 @@ char* _itoa(uint32_t val, int base)
     }
 }
 
+
 void _puts(const char *s, putchar_cb p)
 {
     while(*s) {
         p(*s++);
     }
+}
+
+
+int HistoRing_init(int len, timestamp_cb t_fn)
+{
+    assert(buf == NULL);  // don't double init
+
+    /* sanity check on buf size */
+    if (len < 1) {
+        return 1;
+    }
+
+    /* allocate history buffer */
+    buf = calloc(len, sizeof(buf));
+    if (!buf) {
+        return 1;
+    }
+
+    buf_len = len;
+    _time = t_fn;
+
+    return 0;  // everything's ok ;)
 }

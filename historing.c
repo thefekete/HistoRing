@@ -51,6 +51,13 @@ void _puts(const char *s, putchar_cb p)
     }
 }
 
+void _puts_P(const char *s, putchar_cb p)
+{
+    while(pgm_read_byte(s)) {
+        p(pgm_read_byte(s++));
+    }
+}
+
 void _teardown(void)
 {
     free(buf);
@@ -128,7 +135,7 @@ int HistoRing_print(putchar_cb _putchar)
             _putchar(' ');
             _puts(p->function, _putchar);
             _puts("() ", _putchar);
-            _puts(p->message, _putchar);
+            _puts_P(p->message, _putchar);
             if (p->data != HIST_NOVAL) {
                 _puts(" 0x", _putchar);
                 _puts(_itoa(p->data, 16), _putchar);

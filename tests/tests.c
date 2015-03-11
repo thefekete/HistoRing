@@ -23,6 +23,7 @@
 
 char* _itoa(uint32_t, int);
 void _puts(const char *, putchar_cb);
+void _puts_P(const char *, putchar_cb);
 void _teardown(void);
 
 
@@ -112,6 +113,17 @@ void test_puts_ptr(void)
     // rerun this test in a subprocess
     g_test_trap_assert_passed();
     g_test_trap_assert_stdout(buf);
+}
+
+void test_puts_P(void)
+{
+    if (g_test_trap_fork(0, G_TEST_TRAP_SILENCE_STDOUT)) {
+        _puts_P(PSTR("Hello World!"), my_putchar);
+        exit(0);
+    }
+    // rerun this test in a subprocess
+    g_test_trap_assert_passed();
+    g_test_trap_assert_stdout("Hello World!");
 }
 
 void test_itoa_puts(void)
@@ -216,6 +228,7 @@ int main(int argc, char** argv)
     g_test_add_func("/_puts/const", test_puts_const);
     g_test_add_func("/_puts/ptr", test_puts_ptr);
     g_test_add_func("/_puts/itoa_puts", test_itoa_puts);
+    g_test_add_func("/_puts/PSTR", test_puts_P);
 
     /* main tests */
     g_test_add("/HistoRing/init",

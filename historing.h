@@ -13,10 +13,11 @@
 #ifndef _HISTORING_H_
 #define _HISTORING_H_
 
+#include <avr/pgmspace.h>
 #include <stdint.h>
 
 #define HIST_NOVAL  0xdeadbeef
-#define HISTX(MSG, DATA) HistoRing_add_full(__func__, MSG, (DATA))
+#define HISTX(MSG, DATA) HistoRing_add_full(__func__, PSTR(MSG), (DATA))
 #define HIST(MSG) HISTX(MSG, HIST_NOVAL)
 
 typedef uint32_t (*timestamp_cb)(void);

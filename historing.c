@@ -16,7 +16,6 @@
 
 struct HistItem {
     uint32_t timestamp;
-    const char *file;
     const char *function;
     const char *message;
     uint32_t data;
@@ -48,15 +47,28 @@ void _puts(const char *s, putchar_cb p)
     }
 }
 
+void _teardown(void)
+{
+    free(buf);
+    buf = NULL;
+    buf_len = 0;
+    buf_cnt = 0;
+    buf_head = 0;
+    buf_tail = 0;
+    _time = NULL;
+    serial = 0;
+}
+
 
 int HistoRing_init(int len, timestamp_cb t_fn)
 {
-    assert(buf == NULL);  // don't double init
-
     /* sanity check on buf size */
-    if (len < 1) {
+    if (len < 1)
         return 1;
-    }
+
+    /* if already initialized, destroy before re-init */
+    if (buf)
+        _teardown();
 
     /* allocate history buffer */
     buf = calloc(len, sizeof(buf));

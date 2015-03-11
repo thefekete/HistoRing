@@ -23,7 +23,11 @@ struct HistItem {
 
 static struct HistItem *buf;
 static int buf_len;
+static int buf_cnt;
+static int buf_head;
+static int buf_tail;
 static timestamp_cb _time;
+static uint32_t serial;
 
 
 char* _itoa(uint32_t val, int base)
@@ -78,6 +82,67 @@ int HistoRing_init(int len, timestamp_cb t_fn)
 
     buf_len = len;
     _time = t_fn;
+    HistoRing_add_full(__func__, "history initialized", HIST_NOVAL);
 
-    return 0;  // everything's ok ;)
+    return 0;
+}
+
+void HistoRing_add_full(
+        const char * function, const char * message, uint32_t data)
+{
+    /* if no buffer, do nothing */
+    if (!buf)
+        return;
+
+    if (buf_cnt == buf_len) {
+        /* buffer is full, drop oldest item */
+        /* increment tail and decrement count */
+        buf_tail++;
+        buf_tail %= buf_len;
+        buf_cnt--;
+    }
+
+    /* alias buffer slot and increment head */
+    struct HistItem *p = &buf[buf_head++];
+    buf_head %= buf_len;
+    buf_cnt++;
+
+    /* fill in struct */
+    p->timestamp = (_time) ? _time() : serial++;   // serial num if no callback
+    p->function = function;
+    p->message = message;
+    p->data = data;
+}
+
+/** \brief Prints history using _putchar, clears it if NULL */
+int HistoRing_print(putchar_cb _putchar)
+{
+    int items = 0;
+    while (buf_cnt) {
+        /* alias tail */
+        struct HistItem *p = &buf[buf_tail];
+
+        if (_putchar) {
+            /* we have a putchar callback, print to it */
+            _puts(_itoa(p->timestamp, 10), _putchar);
+            _putchar(' ');
+            _puts(p->function, _putchar);
+            _puts("() ", _putchar);
+            _puts(p->message, _putchar);
+            if (p->data != HIST_NOVAL) {
+                _puts(" 0x", _putchar);
+                _puts(_itoa(p->data, 16), _putchar);
+            }
+            _putchar('\n');
+        }
+
+        /* increment tail and decrement count */
+        buf_tail++;
+        buf_tail %= buf_len;
+        buf_cnt--;
+
+        items++;
+    }
+
+    return items;
 }

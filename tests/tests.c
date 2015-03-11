@@ -114,10 +114,20 @@ void test_puts_ptr(void)
     g_test_trap_assert_stdout(buf);
 }
 
-void test_init(void)
+void test_itoa_puts(void)
 {
-    int result = HistoRing_init(1, NULL);
-    g_assert(result == 0);
+    if (g_test_trap_fork(0, G_TEST_TRAP_SILENCE_STDOUT)) {
+        _puts(_itoa(123456789, 10), my_putchar);
+        exit(0);
+    }
+    // rerun this test in a subprocess
+    g_test_trap_assert_passed();
+    g_test_trap_assert_stdout("123456789");
+}
+
+void test_init(Fixture *f, gconstpointer ignored)
+{
+    g_assert(f->init_result == 0);
 }
 
 void test_init_fails(void)
@@ -130,20 +140,63 @@ void test_init_fails(void)
     g_test_trap_assert_failed();
 }
 
-
-/*
- * INTEGRATION TESTS
- */
-
-void inttest_itoa_puts(void)
+void test_print(Fixture *f, gconstpointer ignored)
 {
     if (g_test_trap_fork(0, G_TEST_TRAP_SILENCE_STDOUT)) {
-        _puts(_itoa(123456789, 10), my_putchar);
+        int messages = HistoRing_print(my_putchar);
+        g_assert_cmpint(messages, ==, 1);  // the init message
+        messages = HistoRing_print(my_putchar);
+        g_assert_cmpint(messages, ==, 0);  // no messages
         exit(0);
     }
     // rerun this test in a subprocess
     g_test_trap_assert_passed();
-    g_test_trap_assert_stdout("123456789");
+    g_test_trap_assert_stdout("*\n");  // something printed
+}
+
+void test_add_full(Fixture *f, gconstpointer ignored)
+{
+    if (g_test_trap_fork(0, G_TEST_TRAP_SILENCE_STDOUT)) {
+        HistoRing_add_full(__func__, "first message", HIST_NOVAL);
+        HistoRing_print(my_putchar);
+        exit(0);
+    }
+    // rerun this test in a subprocess
+    g_test_trap_assert_passed();
+    g_test_trap_assert_stdout("0*\n"  // the init message
+                              "1*test_add_full()*first message\n");
+}
+
+void test_add_full_data(Fixture *f, gconstpointer ignored)
+{
+    if (g_test_trap_fork(0, G_TEST_TRAP_SILENCE_STDOUT)) {
+        HistoRing_add_full(__func__, "data message", 0xabcd);
+        HistoRing_print(my_putchar);
+        exit(0);
+    }
+    // rerun this test in a subprocess
+    g_test_trap_assert_passed();
+    g_test_trap_assert_stdout("0*\n"  // the init message
+                              "1*data message*0xabcd\n");
+}
+
+void test_add_macros(Fixture *f, gconstpointer ignored)
+{
+    if (g_test_trap_fork(0, G_TEST_TRAP_SILENCE_STDOUT)) {
+        HIST("message");
+        HISTX("data message", 0x12345678);
+        HIST("another message");
+        HISTX("another data message", 0x7f);
+        HistoRing_print(my_putchar);
+        exit(0);
+    }
+    // rerun this test in a subprocess
+    g_test_trap_assert_passed();
+    g_test_trap_assert_stdout("0*\n"  // the init message
+                              "1*message\n"
+                              "2*data message*0x12345678\n"
+                              "3*another message\n"
+                              "4*data message*0x7f\n");
 }
 
 
@@ -162,13 +215,20 @@ int main(int argc, char** argv)
     /* _puts tests */
     g_test_add_func("/_puts/const", test_puts_const);
     g_test_add_func("/_puts/ptr", test_puts_ptr);
+    g_test_add_func("/_puts/itoa_puts", test_itoa_puts);
 
     /* main tests */
-    g_test_add_func("/HistoRing/init", test_init);
+    g_test_add("/HistoRing/init",
+            Fixture, NULL, setup, test_init, teardown);;
     g_test_add_func("/HistoRing/init_fails", test_init_fails);
-
-    /* integration tests */
-    g_test_add_func("/integration/itoa_puts", inttest_itoa_puts);
+    g_test_add("/HistoRing/print",
+            Fixture, NULL, setup, test_print, teardown);
+    g_test_add("/HistoRing/add_full",
+            Fixture, NULL, setup, test_add_full, teardown);
+    g_test_add("/HistoRing/add_full_data",
+            Fixture, NULL, setup, test_add_full_data, teardown);
+    g_test_add("/HistoRing/add_macros",
+            Fixture, NULL, setup, test_add_macros, teardown);
 
     return g_test_run();
 }
